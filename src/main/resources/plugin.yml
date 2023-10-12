@@ -1,0 +1,7 @@
+name: SandAPI
+version: '${project.version}'
+main: ua.xsandl3x.api.SandAPIPlugin
+api-version: 1.13
+load: STARTUP
+authors: [xSandl3x]
+description: A tailored, user-friendly toolkit crafted to support my plugin development needs.
