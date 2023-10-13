@@ -39,7 +39,7 @@ public class SimpleCommandService implements ICommandService {
 
     @Override
     public void unregister(SimpleCommand<?> command) {
-        Command simpleCommand = COMMAND_MAP.getCommand(command.toString());
+        Command simpleCommand = COMMAND_MAP.getCommand(command.getLabel());
         Optional.ofNullable(simpleCommand).ifPresent(checkedCommand -> {
             checkedCommand.unregister(COMMAND_MAP);
         });

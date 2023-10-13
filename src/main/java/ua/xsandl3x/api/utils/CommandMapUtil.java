@@ -22,10 +22,6 @@ public class CommandMapUtil {
         }
     }
 
-    public Command getCommandByName(String commandName) {
-        return COMMAND_MAP.getCommand(commandName);
-    }
-
     public CommandMap getCommandMap() {
         return COMMAND_MAP;
     }

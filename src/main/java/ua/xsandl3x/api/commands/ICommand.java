@@ -29,18 +29,4 @@ public interface ICommand<S extends CommandSender> extends IExecutable<S> {
      */
     List<String> tryTabComplete(CommandSender sender, String label, String[] args);
 
-    /**
-     * Nested interface for subcommands. Subcommands are parts of a larger command.
-     *
-     * @param <S> The type of the command sender.
-     */
-    interface ISubCommand<S extends CommandSender> extends IExecutable<S> {
-
-        /**
-         * Returns the id of the argument.
-         *
-         * @return The ID of the argument.
-         */
-        int assignedArgument();
-    }
 }
