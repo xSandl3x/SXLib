@@ -15,7 +15,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public abstract class SimpleCommand<S extends CommandSender> extends SimpleCommandMeta implements ICommand<S> {
+public abstract class SimpleCommand<S extends CommandSender> extends SandCommand<S> {
 
     private final ImmutableList<IAccessibility<S>> accessibilityList = ImmutableList.<IAccessibility<S>>builder()
             .add(new SourceAccessibility<>(this))
