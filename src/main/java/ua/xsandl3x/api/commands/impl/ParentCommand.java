@@ -1,28 +1,27 @@
 package ua.xsandl3x.api.commands.impl;
 
-import com.google.common.collect.ImmutableList;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import ua.xsandl3x.api.commands.IExecutable;
 import ua.xsandl3x.api.commands.accessibility.IAccessibility;
-import ua.xsandl3x.api.commands.accessibility.impl.PermissionAccessibility;
-import ua.xsandl3x.api.commands.accessibility.impl.SourceAccessibility;
 import ua.xsandl3x.api.commands.annotation.Completer;
 import ua.xsandl3x.api.commands.annotation.SubCommand;
 import ua.xsandl3x.api.commands.context.ICommandContext;
 import ua.xsandl3x.api.commands.context.impl.SimpleCommandContext;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public abstract class ParentCommand<S extends CommandSender> extends SandCommand<S>{
 
+    private final int minArg = 2; // test various
     private final SubCommandNode subCommandNode;
-    private final ImmutableList<IAccessibility<S>> accessibilityList = ImmutableList.<IAccessibility<S>>builder()
-            .add(new SourceAccessibility<>(this))
-            .add(new PermissionAccessibility<>(this))
-            .build();
+    private final Map<String, Method> subCommandMap = new HashMap<>();
 
     public ParentCommand(String label, String description, List<String> aliases) {
         super(label, description, aliases);
@@ -46,7 +45,7 @@ public abstract class ParentCommand<S extends CommandSender> extends SandCommand
     @Override
     public void tryExecute(CommandSender sender, String label, String[] args) {
         ICommandContext<S> context = (ICommandContext<S>) new SimpleCommandContext<>(sender, label, args);
-        Optional<IAccessibility<S>> accessibilityOptional = accessibilityList.stream()
+        Optional<IAccessibility<S>> accessibilityOptional = getAccessibilityList().stream()
                 .filter(accessibility -> accessibility.checkAccessibility(context.getSource()))
                 .findFirst();
 
@@ -61,32 +60,23 @@ public abstract class ParentCommand<S extends CommandSender> extends SandCommand
         return null;
     }
 
-    private List<Method> getAnnotatedMethods() {
-        return Arrays.stream(getClass().getDeclaredMethods())
-                .filter(method -> method.isAnnotationPresent(Completer.class))
-                .collect(Collectors.toList());
-    }
-
     private class SubCommandNode implements IExecutable<S> {
 
-        private final ParentCommand<S> parentCommand;
-        private final Map<String, Method> subCommandMap = new HashMap<>();
+        private final ParentCommand<S> parentCommand = ParentCommand.this;
 
         private SubCommandNode() {
             getSubCommands().forEach(method -> {
                 SubCommand subCommand = method.getDeclaredAnnotation(SubCommand.class);
                 for (String alias : subCommand.aliases()) {
-                    subCommandMap.put(alias.toLowerCase(), method);
+                    parentCommand.subCommandMap.put(alias.toLowerCase(), method);
                 }
             });
-
-            parentCommand = ParentCommand.this;
         }
 
         @Override
         public void execute(ICommandContext<S> context) {
-            String argument = context.getRawArgument(0);
-            Method subCommand = subCommandMap.get(argument);
+            String argument = context.getRawArgument(minArg - 1);
+            Method subCommand = parentCommand.subCommandMap.get(argument);
             Optional<Method> subCommandOptional = Optional.ofNullable(subCommand)
                     .filter(method -> !context.isEmptyArguments());
 

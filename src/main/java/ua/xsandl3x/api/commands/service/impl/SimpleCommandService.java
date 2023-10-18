@@ -5,7 +5,7 @@ import lombok.SneakyThrows;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
-import ua.xsandl3x.api.commands.impl.SimpleCommand;
+import ua.xsandl3x.api.commands.impl.SandCommand;
 import ua.xsandl3x.api.commands.service.ICommandService;
 import ua.xsandl3x.api.utils.CommandMapUtil;
 import java.util.List;
@@ -16,7 +16,7 @@ public class SimpleCommandService implements ICommandService {
     private static final CommandMap COMMAND_MAP = CommandMapUtil.getCommandMap();
 
     @Override
-    public void register(SimpleCommand<?> command) {
+    public void register(SandCommand<?> command) {
         Command simpleCommand = new Command(
                 command.getLabel(), command.getDescription(),
                 command.getSyntax(), command.getAliases()
@@ -38,7 +38,7 @@ public class SimpleCommandService implements ICommandService {
     }
 
     @Override
-    public void unregister(SimpleCommand<?> command) {
+    public void unregister(SandCommand<?> command) {
         Command simpleCommand = COMMAND_MAP.getCommand(command.getLabel());
         Optional.ofNullable(simpleCommand).ifPresent(checkedCommand -> {
             checkedCommand.unregister(COMMAND_MAP);

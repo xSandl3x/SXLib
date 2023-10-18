@@ -41,7 +41,7 @@ public class PermissionAccessibility<S extends CommandSender> extends AbstractAc
                     method.setAccessible(true);
                     return method.getDeclaredAnnotation(Permission.class);
                 })
-                .map(Permission::message)
+                .map(Permission::value)
                 .filter(Objects::nonNull)
                 .anyMatch(value -> !source.hasPermission(value));
     }
