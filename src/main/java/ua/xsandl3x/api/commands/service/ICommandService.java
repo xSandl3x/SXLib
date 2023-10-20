@@ -1,5 +1,6 @@
 package ua.xsandl3x.api.commands.service;
 
+import org.bukkit.plugin.Plugin;
 import ua.xsandl3x.api.commands.impl.SandCommand;
 
 /**
@@ -12,7 +13,7 @@ public interface ICommandService {
      *
      * @param command The command object to be registered in the service.
      */
-    void register(SandCommand<?> command);
+    void register(SandCommand<?> command, Plugin plugin);
 
     /**
      * Unregisters a command from the service.

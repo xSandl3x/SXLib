@@ -1,27 +1,33 @@
 package ua.xsandl3x.api.commands.impl;
 
-import lombok.RequiredArgsConstructor;
+import com.google.common.collect.ImmutableMap;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
-import org.bukkit.Bukkit;
+import lombok.experimental.NonFinal;
 import org.bukkit.command.CommandSender;
 import ua.xsandl3x.api.commands.IExecutable;
 import ua.xsandl3x.api.commands.accessibility.IAccessibility;
 import ua.xsandl3x.api.commands.annotation.Completer;
 import ua.xsandl3x.api.commands.annotation.SubCommand;
 import ua.xsandl3x.api.commands.context.ICommandContext;
-import ua.xsandl3x.api.commands.context.impl.SimpleCommandContext;
+import ua.xsandl3x.api.commands.context.impl.SimpleCommandContext;;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
+@FieldDefaults(makeFinal = true)
 public abstract class ParentCommand<S extends CommandSender> extends SandCommand<S>{
 
-    private final int minArg = 2; // test various
-    private final SubCommandNode subCommandNode;
-    private final Map<String, Method> subCommandMap = new HashMap<>();
+    // Minimum argument from which subcommands and their suggestions start working.
+    @NonFinal
+    @Setter(AccessLevel.PROTECTED)
+    private int minArg = 1;
+    private SubCommandNode subCommandNode;
+    private Map<String, Method> subCommandMap = new HashMap<>();
+    private ImmutableMap<Integer, TabCompletionStrategy> tabCompletionMap = ImmutableMap.<Integer, TabCompletionStrategy>builder()
+            .put(0, new SubCommandTabCompletionStrategy())
+            .put(1, new ArgumentTabCompletionStrategy())
+            .build();
 
     public ParentCommand(String label, String description, List<String> aliases) {
         super(label, description, aliases);
@@ -57,7 +63,24 @@ public abstract class ParentCommand<S extends CommandSender> extends SandCommand
 
     @Override
     public List<String> tryTabComplete(CommandSender sender, String label, String[] args) {
-        return null;
+        int comparison = Integer.compare(args.length, minArg);
+        return tabCompletionMap.entrySet().stream()
+                .filter(entry -> hasAccess(sender))
+                .filter(entry -> entry.getKey() == comparison)
+                .map(Map.Entry::getValue)
+                .map(value -> value.tabComplete(sender, label, args))
+                .findFirst()
+                .orElseGet(() -> super.tryTabComplete(sender, label, args));
+    }
+
+    @Override
+    protected List<String[]> getCompletions() {
+        return Arrays.stream(getClass().getDeclaredMethods())
+                .filter(method -> !method.isAnnotationPresent(SubCommand.class))
+                .filter(method -> method.isAnnotationPresent(Completer.class))
+                .map(method -> method.getDeclaredAnnotation(Completer.class))
+                .map(Completer::value)
+                .collect(Collectors.toList());
     }
 
     private class SubCommandNode implements IExecutable<S> {
@@ -68,7 +91,7 @@ public abstract class ParentCommand<S extends CommandSender> extends SandCommand
             getSubCommands().forEach(method -> {
                 SubCommand subCommand = method.getDeclaredAnnotation(SubCommand.class);
                 for (String alias : subCommand.aliases()) {
-                    parentCommand.subCommandMap.put(alias.toLowerCase(), method);
+                    subCommandMap.put(alias.toLowerCase(), method);
                 }
             });
         }
@@ -76,7 +99,7 @@ public abstract class ParentCommand<S extends CommandSender> extends SandCommand
         @Override
         public void execute(ICommandContext<S> context) {
             String argument = context.getRawArgument(minArg - 1);
-            Method subCommand = parentCommand.subCommandMap.get(argument);
+            Method subCommand = subCommandMap.get(argument);
             Optional<Method> subCommandOptional = Optional.ofNullable(subCommand)
                     .filter(method -> !context.isEmptyArguments());
 
@@ -103,7 +126,7 @@ public abstract class ParentCommand<S extends CommandSender> extends SandCommand
                     .count() == 1;
         }
 
-        @RequiredArgsConstructor
+        @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
         @FieldDefaults(makeFinal = true)
         private class HandledSubCommand {
 
@@ -118,6 +141,47 @@ public abstract class ParentCommand<S extends CommandSender> extends SandCommand
                     throw new RuntimeException(throwable);
                 }
             }
+        }
+    }
+
+    private interface TabCompletionStrategy {
+
+        List<String> tabComplete(CommandSender sender, String label, String[] args);
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    private class ArgumentTabCompletionStrategy implements TabCompletionStrategy {
+
+        @Override
+        public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+            ParameterSession session = getParameterSession();
+            IParameterTransformer<String> transformer = session.getTransformer();
+            String subCommandName = args[minArg - 1].toLowerCase();
+            Method subCommandMethod = subCommandMap.get(subCommandName);
+
+            return Optional.ofNullable(subCommandMethod)
+                    .map(method -> method.getDeclaredAnnotation(Completer.class))
+                    .map(Completer::value)
+                    .map(value -> {
+                        int argumentIndex = args.length - minArg;
+                        if (argumentIndex <= value.length) {
+                            return transformer.transform(value[argumentIndex - 1]);
+                        }
+                        return null;
+                    })
+                    .orElse(Collections.emptyList());
+        }
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    private class SubCommandTabCompletionStrategy implements TabCompletionStrategy {
+
+        @Override
+        public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+            String subCommandName = args[minArg - 1].toLowerCase();
+            return subCommandMap.keySet().stream()
+                    .filter(key -> key.startsWith(subCommandName))
+                    .collect(Collectors.toList());
         }
     }
 }

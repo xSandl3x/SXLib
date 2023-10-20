@@ -7,7 +7,7 @@ public final class SandAPIPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        new SimpleCommandService().register(new TestCommand());
+        new SimpleCommandService().register(new TestComman(),this);
     }
 
     @Override

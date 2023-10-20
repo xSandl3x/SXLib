@@ -39,4 +39,13 @@ public abstract class SimpleCommand<S extends CommandSender> extends SandCommand
             execute(context);
         }
     }
+
+    @Override
+    protected List<String[]> getCompletions() {
+        return Arrays.stream(getClass().getDeclaredMethods())
+                .filter(method -> method.isAnnotationPresent(Completer.class))
+                .map(method -> method.getDeclaredAnnotation(Completer.class))
+                .map(Completer::value)
+                .collect(Collectors.toList());
+    }
 }

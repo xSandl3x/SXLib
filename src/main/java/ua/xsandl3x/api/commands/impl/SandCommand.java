@@ -12,7 +12,6 @@ import ua.xsandl3x.api.commands.ICommand;
 import ua.xsandl3x.api.commands.accessibility.IAccessibility;
 import ua.xsandl3x.api.commands.accessibility.impl.PermissionAccessibility;
 import ua.xsandl3x.api.commands.accessibility.impl.SourceAccessibility;
-import ua.xsandl3x.api.commands.annotation.Completer;
 import ua.xsandl3x.api.commands.context.meta.impl.SimpleCommandMeta;
 import java.util.*;
 import java.util.function.Function;
@@ -40,19 +39,20 @@ public abstract class SandCommand<S extends CommandSender> extends SimpleCommand
         IParameterTransformer<String> transformer = session.getTransformer();
 
         return getCompletions().stream()
+                .filter(values -> hasAccess(sender))
                 .filter(values -> (args.length - 1) < values.length)
                 .map(values -> transformer.transform(values[args.length - 1]))
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
     }
 
-    private List<String[]> getCompletions() {
-        return Arrays.stream(getClass().getDeclaredMethods())
-                .filter(method -> method.isAnnotationPresent(Completer.class))
-                .map(method -> method.getDeclaredAnnotation(Completer.class))
-                .map(Completer::value)
-                .collect(Collectors.toList());
+    @SuppressWarnings("unchecked")
+    protected boolean hasAccess(CommandSender sender) {
+        return getAccessibilityList().stream()
+                .noneMatch(accessibility -> accessibility.checkAccessibility((S) sender));
     }
+
+    protected abstract List<String[]> getCompletions();
 
     protected static class ParameterSession {
 
